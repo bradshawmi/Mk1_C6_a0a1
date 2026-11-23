@@ -77,6 +77,9 @@ static const uint8_t AURORA_RING_BLEND_AMT = 128;
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <Preferences.h>
+#ifndef FASTLED_RGBW_COLORIMETRIC
+#define FASTLED_RGBW_COLORIMETRIC 1
+#endif
 #include <FastLED.h>
 #include <ArduinoJson.h>
 #include <math.h>
@@ -387,8 +390,10 @@ static inline uint16_t clampSpeed(uint16_t v){ return constrain(v, 10, 1000); }
 #define BUTTON_PIN     0
 #define VBAT_PIN       2
 
-#define LED_TYPE    WS2812
-#define COLOR_ORDER GRB
+#define OUTER_LED_TYPE    WS2812
+#define OUTER_COLOR_ORDER GRB
+#define INNER_LED_TYPE    SK6812
+#define INNER_COLOR_ORDER GRBW
 
 static const char* AP_SSID = "ArcReactorMK1";
 static const char* AP_PASS = "arcreactor";
@@ -2446,8 +2451,16 @@ void setup(){
 delay(100);
   Serial.println(String("Arc Reactor MK1 boot (") + BUILD_TAG + ") (" + String(BUILD_TAG) + " — gateV dim-bias; DF-only gating; updated timings; warm tint overlay)");
 
-  FastLED.addLeds<LED_TYPE, OUTER_DATA_PIN, COLOR_ORDER>(outerPhysical, 64);
-  FastLED.addLeds<LED_TYPE, INNER_DATA_PIN, COLOR_ORDER>(leds, 64, 9);
+  FastLED.addLeds<OUTER_LED_TYPE, OUTER_DATA_PIN, OUTER_COLOR_ORDER>(outerPhysical, 64);
+  fl::shared_ptr<const fl::color::DiodeProfile> innerProfile =
+      fl::color::make_diode_profile(fl::color::kRgbwDefaultProfile);
+  fl::Rgbw innerRgbw(
+      6500,
+      fl::RGBW_MODE::kRGBWColorimetric,
+      fl::EOrderW::W3,
+      innerProfile);
+  FastLED.addLeds<INNER_LED_TYPE, INNER_DATA_PIN, INNER_COLOR_ORDER>(leds, 64, 9)
+      .setRgbw(innerRgbw);
   FastLED.setDither(false); // v4c7b14: disable temporal dithering for smooth low-end breath
 
   FastLED.clear(true);
