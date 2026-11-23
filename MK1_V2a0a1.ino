@@ -95,16 +95,16 @@ static const uint8_t AURORA_RING_BLEND_AMT = 128;
 
 #ifndef Z1_START
   #define Z1_START 0
-  #define Z1_END   15
+  #define Z1_END   63
 
 #ifndef NUM_LEDS
-#define NUM_LEDS 25
+#define NUM_LEDS 73
 #endif
 
-  #define Z2_START 16
-  #define Z2_END   23
-  #define Z3_START 24
-  #define Z3_END   24
+  #define Z2_START 64
+  #define Z2_END   71
+  #define Z3_START 72
+  #define Z3_END   72
 #endif
 
 #ifndef Z3_RADIUS_MM
@@ -382,9 +382,10 @@ static inline uint8_t gamma22_lut(uint8_t x){
 
 static inline uint16_t clampSpeed(uint16_t v){ return constrain(v, 10, 1000); }
 
-#define DATA_PIN    6
-#define BUTTON_PIN  3
-#define VBAT_PIN    A2
+#define OUTER_DATA_PIN 18
+#define INNER_DATA_PIN 19
+#define BUTTON_PIN     0
+#define VBAT_PIN       2
 
 #define LED_TYPE    WS2812
 #define COLOR_ORDER GRB
@@ -595,13 +596,19 @@ static void ensureRingLUTInited(){
   if (gRingLUTInited) return;
   const float cx  = 0.5f;
   const float cy  = 0.5f;
-  const float rad = 0.45f;
   const float tau = 6.28318530718f;
-  for (uint16_t i = 0; i < NUM_LEDS; ++i) {
-    float a = tau * (float)i / (float)NUM_LEDS;
-    gRingLUT[i].x = cx + rad * cosf(a);
-    gRingLUT[i].y = cy + rad * sinf(a);
+  for (uint16_t i = Z1_START; i <= Z1_END; ++i) {
+    float a = tau * (float)(i - Z1_START) / (float)(Z1_END - Z1_START + 1);
+    gRingLUT[i].x = cx + 0.45f * cosf(a);
+    gRingLUT[i].y = cy + 0.45f * sinf(a);
   }
+  for (uint16_t i = Z2_START; i <= Z2_END; ++i) {
+    float a = tau * (float)(i - Z2_START) / (float)(Z2_END - Z2_START + 1);
+    gRingLUT[i].x = cx + 0.22f * cosf(a);
+    gRingLUT[i].y = cy + 0.22f * sinf(a);
+  }
+  gRingLUT[Z3_START].x = cx;
+  gRingLUT[Z3_START].y = cy;
   gRingLUTInited = true;
 }
 
@@ -1345,34 +1352,33 @@ static void auroraUpdateAndOverlay() {
     leds[i].b = qadd8(leds[i].b, smoothed.b);
   }
 
-  // Ring-aware edge blending: smooth transition between LED 0 and LED 15
-  // (they are adjacent on the physical ring, so blend their colors)
-  // Zone 0 (outer ring) spans LEDs 0-15; check if zone config matches expected layout
-  if (zones[0].endLed >= 15 && zones[0].startLed == 0) {
+  // Ring-aware edge blending: smooth transition across the 64-LED outer ring seam
+  // Zone 0 (outer ring) spans LEDs 0-63; check if zone config matches expected layout
+  if (zones[0].endLed >= 63 && zones[0].startLed == 0) {
     // Extended ring seam blending: blend multiple LEDs near the seam for smoother transition
-    // LED 0 and 15 are physically adjacent, so we blend them strongly
-    // Also blend LEDs 1 and 14 with reduced amount for gradual falloff
+    // LED 0 and 63 are physically adjacent, so we blend them strongly
+    // Also blend LEDs 1 and 62 with reduced amount for gradual falloff
     CRGB led0 = leds[0];
     CRGB led1 = leds[1];
-    CRGB led14 = leds[14];
-    CRGB led15 = leds[15];
+    CRGB led62 = leds[62];
+    CRGB led63 = leds[63];
     
-    // Strong blend for edge LEDs (0 and 15)
-    leds[0].r = lerp8by8(led0.r, led15.r, AURORA_RING_BLEND_AMT);
-    leds[0].g = lerp8by8(led0.g, led15.g, AURORA_RING_BLEND_AMT);
-    leds[0].b = lerp8by8(led0.b, led15.b, AURORA_RING_BLEND_AMT);
-    leds[15].r = lerp8by8(led15.r, led0.r, AURORA_RING_BLEND_AMT);
-    leds[15].g = lerp8by8(led15.g, led0.g, AURORA_RING_BLEND_AMT);
-    leds[15].b = lerp8by8(led15.b, led0.b, AURORA_RING_BLEND_AMT);
+    // Strong blend for edge LEDs (0 and 63)
+    leds[0].r = lerp8by8(led0.r, led63.r, AURORA_RING_BLEND_AMT);
+    leds[0].g = lerp8by8(led0.g, led63.g, AURORA_RING_BLEND_AMT);
+    leds[0].b = lerp8by8(led0.b, led63.b, AURORA_RING_BLEND_AMT);
+    leds[63].r = lerp8by8(led63.r, led0.r, AURORA_RING_BLEND_AMT);
+    leds[63].g = lerp8by8(led63.g, led0.g, AURORA_RING_BLEND_AMT);
+    leds[63].b = lerp8by8(led63.b, led0.b, AURORA_RING_BLEND_AMT);
     
-    // Lighter blend for adjacent LEDs (1 and 14) - half the blend amount
+    // Lighter blend for adjacent LEDs (1 and 62) - half the blend amount
     uint8_t halfBlend = AURORA_RING_BLEND_AMT >> 1;
-    leds[1].r = lerp8by8(led1.r, led14.r, halfBlend);
-    leds[1].g = lerp8by8(led1.g, led14.g, halfBlend);
-    leds[1].b = lerp8by8(led1.b, led14.b, halfBlend);
-    leds[14].r = lerp8by8(led14.r, led1.r, halfBlend);
-    leds[14].g = lerp8by8(led14.g, led1.g, halfBlend);
-    leds[14].b = lerp8by8(led14.b, led1.b, halfBlend);
+    leds[1].r = lerp8by8(led1.r, led62.r, halfBlend);
+    leds[1].g = lerp8by8(led1.g, led62.g, halfBlend);
+    leds[1].b = lerp8by8(led1.b, led62.b, halfBlend);
+    leds[62].r = lerp8by8(led62.r, led1.r, halfBlend);
+    leds[62].g = lerp8by8(led62.g, led1.g, halfBlend);
+    leds[62].b = lerp8by8(led62.b, led1.b, halfBlend);
   }
 }
 
@@ -2422,7 +2428,8 @@ void setup(){
 delay(100);
   Serial.println(String("Arc Reactor MK1 boot (") + BUILD_TAG + ") (" + String(BUILD_TAG) + " — gateV dim-bias; DF-only gating; updated timings; warm tint overlay)");
 
-  FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.addLeds<LED_TYPE, OUTER_DATA_PIN, COLOR_ORDER>(leds, 0, 64);
+  FastLED.addLeds<LED_TYPE, INNER_DATA_PIN, COLOR_ORDER>(leds, 64, 9);
   FastLED.setDither(false); // v4c7b14: disable temporal dithering for smooth low-end breath
 
   FastLED.clear(true);
@@ -2432,17 +2439,20 @@ delay(100);
   randomSeed(esp_random());
 
   // Default zones (first boot)
-  zones[0] = {0, 15, E_Candle,     E_ArcFlicker,   CRGB::Orange, CRGB::Blue,  300, 300, 255, 255};
-  zones[1] = {16,23, E_ArcFlicker, E_WavePulse,    CRGB::Blue,   CRGB::Cyan,  400, 400, 255, 255};
-  zones[2] = {24,24, E_WavePulse,  E_Off,          CRGB::White,  CRGB::Black, 350, 350, 255, 255};
+  zones[0] = {0, 63, E_Candle,     E_ArcFlicker,   CRGB::Orange, CRGB::Blue,  300, 300, 255, 255};
+  zones[1] = {64,71, E_ArcFlicker, E_WavePulse,    CRGB::Blue,   CRGB::Cyan,  400, 400, 255, 255};
+  zones[2] = {72,72, E_WavePulse,  E_Off,          CRGB::White,  CRGB::Black, 350, 350, 255, 255};
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(VBAT_PIN, INPUT);
   batteryVoltage = 2.0f * analogReadMilliVolts(VBAT_PIN) / 1000.0f;
 
-#if defined(CONFIG_IDF_TARGET_ESP32C3)
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
   esp_deep_sleep_enable_gpio_wakeup(1ULL << BUTTON_PIN, ESP_GPIO_WAKEUP_GPIO_LOW);
-  addDebug("C3: GPIO wake enabled (LOW on GPIO3)");
+  addDebug("C6: GPIO wake enabled (LOW on GPIO0)");
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  esp_deep_sleep_enable_gpio_wakeup(1ULL << BUTTON_PIN, ESP_GPIO_WAKEUP_GPIO_LOW);
+  addDebug("C3: GPIO wake enabled");
 #else
   #if defined(ESP_GPIO_WAKEUP_GPIO_LOW)
     esp_sleep_enable_ext1_wakeup(1ULL<<BUTTON_PIN, ESP_GPIO_WAKEUP_GPIO_LOW);
@@ -2607,7 +2617,7 @@ server.on("/presetApply", HTTP_POST, [](){
     if (deserializeJson(st, blob)){ server.send(400,"text/plain","Corrupt preset"); return; }
 
     
-  // Unified path: apply ALL preset fields with the same helper as GPIO3 double-click
+  // Unified path: apply ALL preset fields with the same helper as the button double-click
   applyPresetJson(st);
   // Persist activePreset = idx (same behavior as internal path when persistActive=true)
   activePreset = idx;
