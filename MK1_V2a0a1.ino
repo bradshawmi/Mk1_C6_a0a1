@@ -456,9 +456,26 @@ static void effectName(Effect e, char* out, size_t outlen){
 }
 
 static CRGB leds[NUM_LEDS];
+static CRGB outerPhysical[64];
 static uint8_t osGlow[NUM_LEDS] = {0};
 static RingCoord gRingLUT[NUM_LEDS];
 static bool      gRingLUTInited = false;
+
+// The outer ring alternates between opposite sides:
+// indices 0..31 use even data positions, and indices 63..32 use odd positions.
+static inline void remapOuterRingForOutput(){
+  for (uint16_t i = 0; i < 64; ++i) {
+    uint16_t physical = (i < 32) ? (i * 2) : (127 - (i * 2));
+    outerPhysical[physical] = leds[i];
+  }
+}
+
+static inline void clearAndShowAll(){
+  for (uint16_t i = 0; i < NUM_LEDS; ++i) leds[i] = CRGB::Black;
+  for (uint16_t i = 0; i < 64; ++i) outerPhysical[i] = CRGB::Black;
+  remapOuterRingForOutput();
+  FastLED.show();
+}
 // Aurora temporal smoothing buffers (declared after NUM_LEDS is defined)
 static CRGB gAuroraPrev[NUM_LEDS];
 static bool gAuroraPrevInit = false;
@@ -2001,6 +2018,7 @@ static void applyAllEffects(){
     cz3.g = qadd8(cz3.g, (uint8_t)((uint16_t(cz3.g) * 51U) >> 8));
     cz3.b = qadd8(cz3.b, (uint8_t)((uint16_t(cz3.b) * 51U) >> 8));
   }
+remapOuterRingForOutput();
 FastLED.show();}
 
 // === INSERTION POINT: PRESET_APPLY_HELPERS ===
@@ -2395,7 +2413,7 @@ doc["activePreset"]   = activePreset;
 
 static void enterDeepSleepNow(const char* reason){
   addDebugf("Entering deep sleep: %s", reason ? reason : "");
-  FastLED.clear(true); FastLED.show();
+  clearAndShowAll();
   WiFi.mode(WIFI_OFF);
   delay(50);
   esp_deep_sleep_start();
@@ -2428,7 +2446,7 @@ void setup(){
 delay(100);
   Serial.println(String("Arc Reactor MK1 boot (") + BUILD_TAG + ") (" + String(BUILD_TAG) + " — gateV dim-bias; DF-only gating; updated timings; warm tint overlay)");
 
-  FastLED.addLeds<LED_TYPE, OUTER_DATA_PIN, COLOR_ORDER>(leds, 0, 64);
+  FastLED.addLeds<LED_TYPE, OUTER_DATA_PIN, COLOR_ORDER>(outerPhysical, 64);
   FastLED.addLeds<LED_TYPE, INNER_DATA_PIN, COLOR_ORDER>(leds, 64, 9);
   FastLED.setDither(false); // v4c7b14: disable temporal dithering for smooth low-end breath
 
@@ -2771,7 +2789,7 @@ void loop(){
     if (buttonDownAt == 0) buttonDownAt = millis();
     else if (millis() - buttonDownAt >= BUTTON_HOLD_MS) {
       addDebug("Manual deep sleep requested (long press)");
-      FastLED.clear(true); FastLED.show();
+      clearAndShowAll();
       while (digitalRead(BUTTON_PIN)==LOW) delay(5);
       delay(60);
       enterDeepSleepNow("manual");
@@ -2788,7 +2806,7 @@ void loop(){
       if (simLowSinceMs == 0UL) simLowSinceMs = millis();
       else if ((millis() - simLowSinceMs) >= 10000UL) {
         addDebug("Sim LowV -> deep sleep");
-        FastLED.clear(true); FastLED.show();
+        clearAndShowAll();
         WiFi.mode(WIFI_OFF);
         delay(60);
         enterDeepSleepNow("simLowV");
@@ -2801,7 +2819,7 @@ void loop(){
   }
 if (allowAutoSleep && batteryVoltage <= FULL_OFF_V){
     addDebug("Battery critical -> deep sleep");
-    FastLED.clear(true); FastLED.show();
+    clearAndShowAll();
     WiFi.mode(WIFI_OFF);
     delay(60);
     enterDeepSleepNow("battery");
