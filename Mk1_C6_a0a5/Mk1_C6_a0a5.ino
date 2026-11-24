@@ -21,7 +21,7 @@ static inline void auroraUpdate(uint8_t z, uint16_t speed);
 static inline CRGB auroraSample(uint8_t z, uint16_t iGlobal, uint8_t intensity);
 static inline uint8_t auroraHolesMask(uint8_t z, uint16_t iGlobal);
 
-static constexpr char BUILD_TAG[] = "c6a0a4";
+static constexpr char BUILD_TAG[] = "c6a0a5";
 
 enum DFPhase : uint8_t;
 struct DFState;
@@ -86,6 +86,7 @@ static const uint8_t AURORA_RING_BLEND_AMT = 128;
 #include "esp_sleep.h"
 #include "driver/gpio.h"
 #include "prefs_keys.h"
+#include "default_presets.h"
 
 // === INSERTION POINT: TYPES_GUARD_ABOVE ===
 #ifndef PP_ENABLED
@@ -2427,6 +2428,48 @@ static void enterDeepSleepNow(const char* reason){
 
 // ---------- Setup ----------
 
+static bool seedFactoryPresets(){
+  Preferences prefs;
+  if (!prefs.begin(PREF_NAMESPACE, false)) {
+    addDebug("ERROR: Cannot open preferences to seed factory presets");
+    return false;
+  }
+
+  const bool presetsInitialized = prefs.getBool(PREF_FACTORY_PRESETS, false);
+  if (!presetsInitialized) {
+    for (size_t idx = 0; idx < FACTORY_PRESET_COUNT; ++idx) {
+      const char* key = presetKeyFor(static_cast<int>(idx));
+      if (prefs.getString(key).length() != 0) continue;
+      if (prefs.putString(key, FACTORY_PRESETS[idx]) == 0) {
+        prefs.end();
+        addDebugf("ERROR: Failed to save factory preset %u", static_cast<unsigned>(idx));
+        return false;
+      }
+    }
+
+    const bool activePresetExists =
+        activePreset >= 0 && activePreset <= 9 &&
+        prefs.getString(presetKeyFor(activePreset)).length() != 0;
+    if (!activePresetExists) {
+      activePreset = 0;
+      if (prefs.putChar(PREF_ACTIVE_PRESET, activePreset) == 0) {
+        prefs.end();
+        addDebug("ERROR: Failed to select factory preset 0");
+        return false;
+      }
+    }
+
+    if (!prefs.putBool(PREF_FACTORY_PRESETS, true)) {
+      prefs.end();
+      addDebug("ERROR: Failed to record factory preset initialization");
+      return false;
+    }
+  }
+
+  prefs.end();
+  return true;
+}
+
 static void applyActivePresetOnBoot(){
   int8_t idx = prefReadChar(PREF_ACTIVE_PRESET, -1);
   if (idx < 0) return;
@@ -2509,6 +2552,9 @@ delay(100);
   recordActivity();
 
   loadPrefs();
+  if (!seedFactoryPresets()) {
+    Serial.println("ERROR: Factory preset initialization failed.");
+  }
 
   // Auto-apply last active preset on boot (restores full state)
   // ===== Routes =====

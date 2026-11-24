@@ -12,11 +12,12 @@ static constexpr char PREF_DF_THRESH[] = "dfThresh";        // dfThreshold store
 static constexpr char PREF_AUTO_DF[] = "autoDF";
 static constexpr char PREF_MASTER[] = "master";
 static constexpr char PREF_ACTIVE_PRESET[] = "activePreset";
+static constexpr char PREF_FACTORY_PRESETS[] = "factorySet1";
 static constexpr char PREF_WIFI_IDLE[] = "wifiIdleAutoOff";
 static constexpr char PREF_AP_SSID[] = "apSSID";            // Access Point SSID
 static constexpr char PREF_AP_PASS[] = "apPass";            // Access Point password
 
-// Presets: "preset0".."preset7"
+// Presets: "preset0".."preset9"
 static inline const char* presetKeyFor(int idx) {
   static char tmp[16];
   snprintf(tmp, sizeof(tmp), "preset%d", idx);
