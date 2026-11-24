@@ -2,6 +2,10 @@
 #define DEBUG_LOGS 0
 #include <stdint.h>
 #include <stddef.h>
+#ifndef FASTLED_RGBW_COLORIMETRIC
+#define FASTLED_RGBW_COLORIMETRIC 1
+#endif
+#include <FastLED.h>
 
 static volatile uint32_t stateEpoch = 0;
 // === INSERTION POINT: TYPES_GUARD_ABOVE ===
@@ -13,13 +17,11 @@ enum DFPhase : uint8_t;
 struct DFState;
 struct LightningZoneState;
 // === INSERTION POINT: OPTIONAL_PROTOTYPES ===
-struct CRGB;
-
 static inline void auroraUpdate(uint8_t z, uint16_t speed);
 static inline CRGB auroraSample(uint8_t z, uint16_t iGlobal, uint8_t intensity);
 static inline uint8_t auroraHolesMask(uint8_t z, uint16_t iGlobal);
 
-static constexpr char BUILD_TAG[] = "c6a0a2";
+static constexpr char BUILD_TAG[] = "c6a0a3";
 
 enum DFPhase : uint8_t;
 struct DFState;
@@ -77,10 +79,6 @@ static const uint8_t AURORA_RING_BLEND_AMT = 128;
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <Preferences.h>
-#ifndef FASTLED_RGBW_COLORIMETRIC
-#define FASTLED_RGBW_COLORIMETRIC 1
-#endif
-#include <FastLED.h>
 #include <ArduinoJson.h>
 #include <math.h>
 #include <stdarg.h>
