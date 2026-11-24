@@ -21,7 +21,7 @@ static inline void auroraUpdate(uint8_t z, uint16_t speed);
 static inline CRGB auroraSample(uint8_t z, uint16_t iGlobal, uint8_t intensity);
 static inline uint8_t auroraHolesMask(uint8_t z, uint16_t iGlobal);
 
-static constexpr char BUILD_TAG[] = "c6a0a3";
+static constexpr char BUILD_TAG[] = "c6a0a4";
 
 enum DFPhase : uint8_t;
 struct DFState;
@@ -391,7 +391,7 @@ static inline uint16_t clampSpeed(uint16_t v){ return constrain(v, 10, 1000); }
 #define OUTER_LED_TYPE    WS2812
 #define OUTER_COLOR_ORDER GRB
 #define INNER_LED_TYPE    SK6812
-#define INNER_COLOR_ORDER GRBW
+#define INNER_COLOR_ORDER GRB
 
 static const char* AP_SSID = "ArcReactorMK1";
 static const char* AP_PASS = "arcreactor";

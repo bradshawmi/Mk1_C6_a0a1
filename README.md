@@ -2,7 +2,7 @@
 
 This fork adapts the MK1 firmware for the Seeed Studio XIAO ESP32-C6.
 
-Open `Mk1_C6_a0a3/Mk1_C6_a0a3.ino` in Arduino IDE. The sketch folder also
+Open `Mk1_C6_a0a4/Mk1_C6_a0a4.ino` in Arduino IDE. The sketch folder also
 contains `prefs_keys.h` and `web_pages.h`; keep all three files together.
 
 ## Pin assignments
@@ -17,5 +17,6 @@ contains `prefs_keys.h` and `web_pages.h`; keep all three files together.
 The existing three-zone layout is retained: 64 outer LEDs, 8 inner LEDs, and 1 core LED. The total LED index count is 73.
 
 The outer ring uses WS2812-compatible output in GRB order. The inner ring and
-sequentially last center LED use SK6812 RGBW LEDs in GRBW order on D8/GPIO19.
+sequentially last center LED use SK6812 RGBW LEDs in GRB order on D8/GPIO19;
+FastLED's setRgbw conversion supplies the W channel.
 The FastLED RGBW conversion targets the 6500K dedicated white channel.
