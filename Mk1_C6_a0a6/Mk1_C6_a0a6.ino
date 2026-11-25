@@ -21,7 +21,7 @@ static inline void auroraUpdate(uint8_t z, uint16_t speed);
 static inline CRGB auroraSample(uint8_t z, uint16_t iGlobal, uint8_t intensity);
 static inline uint8_t auroraHolesMask(uint8_t z, uint16_t iGlobal);
 
-static constexpr char BUILD_TAG[] = "c6a0a5";
+static constexpr char BUILD_TAG[] = "c6a0a6";
 
 enum DFPhase : uint8_t;
 struct DFState;
@@ -499,7 +499,11 @@ struct Zone {
   uint16_t speedB;
   uint8_t  intensityA;
   uint8_t  intensityB;
-} zones[3];
+} zones[3] = {
+  {0, 63, E_ArcFlicker, E_Off, CRGB(0, 255, 162), CRGB::Black, 1000, 603, 0, 255},
+  {64, 71, E_On, E_Off, CRGB(0, 255, 162), CRGB(0, 255, 162), 1000, 552, 57, 255},
+  {72, 72, E_Off, E_Breathe, CRGB(0, 255, 162), CRGB::Cyan, 1000, 686, 255, 255}
+};
 
 static inline bool PP_pickTempoOwner(uint16_t &outSp, uint8_t &outInt){
   if (zones[0].effectA == E_PowerPulse){ outSp = zones[0].speedA; outInt = zones[0].intensityA; return true; }
@@ -518,15 +522,15 @@ static inline bool powerPulseAnyZoneSelected(){
   return false;
 }
 
-static uint8_t masterBrightness = 128;
-static bool    autoDFEnabled    = false;
+static uint8_t masterBrightness = 132;
+static bool    autoDFEnabled    = true;
 
-static bool  wifiIdleAutoOff = true;
+static bool  wifiIdleAutoOff = false;
 static float batteryVoltage = 0.0f;
 
-static float dfThresholdV = 3.60f;
+static float dfThresholdV = 3.69f;
 static bool  simVbatEnabled = false;
-static float simVbat = 3.60f;
+static float simVbat = 3.62f;
 
 static unsigned long wakeMillis = 0;
 static unsigned long simLowSinceMs = 0;
@@ -2509,11 +2513,6 @@ delay(100);
 
   // RNG seed once
   randomSeed(esp_random());
-
-  // Default zones (first boot)
-  zones[0] = {0, 63, E_Candle,     E_ArcFlicker,   CRGB::Orange, CRGB::Blue,  300, 300, 255, 255};
-  zones[1] = {64,71, E_ArcFlicker, E_WavePulse,    CRGB::Blue,   CRGB::Cyan,  400, 400, 255, 255};
-  zones[2] = {72,72, E_WavePulse,  E_Off,          CRGB::White,  CRGB::Black, 350, 350, 255, 255};
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(VBAT_PIN, INPUT);

@@ -2,7 +2,7 @@
 
 This fork adapts the MK1 firmware for the Seeed Studio XIAO ESP32-C6.
 
-Open `Mk1_C6_a0a5/Mk1_C6_a0a5.ino` in Arduino IDE. Keep all supporting headers
+Open `Mk1_C6_a0a6/Mk1_C6_a0a6.ino` in Arduino IDE. Keep all supporting headers
 in the same sketch folder.
 
 ## Pin assignments
